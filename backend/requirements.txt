@@ -1,3 +1,4 @@
+greenlet==3.1.1
 fastapi==0.116.1
 uvicorn[standard]==0.35.0
 sqlalchemy==2.0.43
@@ -7,3 +8,8 @@ python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
 bcrypt==3.2.2
 email-validator==2.3.0
+xgboost
+scikit-learn
+numpy
+shap
+tensorflow
