@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,19 +8,25 @@ from app.api.router import api_router
 from app.core.config import get_settings
 from app.db.base import Base
 from app.db.session import engine
-from app.models.department import Department
-from app.models.user import User
+from app.models import *  # noqa - register all models
 
 settings = get_settings()
+logging.basicConfig(level=logging.INFO)
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
+    # Load ML models at startup
+    try:
+        from app.services.ml_service import load_models
+        load_models()
+    except Exception as e:
+        logging.warning(f"ML models not loaded: {e}")
     yield
 
 
-app = FastAPI(title=settings.project_name, version="0.1.0", lifespan=lifespan)
+app = FastAPI(title=settings.project_name, version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,10 +40,10 @@ app.include_router(api_router)
 
 
 @app.get("/")
-def read_root() -> dict[str, str]:
-    return {"message": "AcadeX FastAPI backend is running"}
+def read_root():
+    return {"message": "AcadeX Backend is running", "version": "1.0.0"}
 
 
 @app.get("/health")
-def health_check() -> dict[str, str]:
+def health_check():
     return {"status": "ok"}
