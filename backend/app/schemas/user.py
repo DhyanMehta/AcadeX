@@ -16,5 +16,6 @@ class UserRead(BaseModel):
     role: UserRole
     department_id: Optional[int]
     is_active: bool
+    must_change_password: bool = False
     created_at: datetime
     updated_at: datetime

@@ -9,6 +9,7 @@ from app.api.routes.risk import router_risk, router_ml
 from app.api.routes.lms import router as lms_router
 from app.api.routes.alerts import router as alerts_router
 from app.api.routes.interventions import router as interventions_router
+from app.api.routes.user_management import router as user_mgmt_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -21,3 +22,4 @@ api_router.include_router(router_ml)
 api_router.include_router(lms_router)
 api_router.include_router(alerts_router)
 api_router.include_router(interventions_router)
+api_router.include_router(user_mgmt_router)

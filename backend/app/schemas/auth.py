@@ -21,6 +21,7 @@ class TokenResponse(BaseModel):
     token_type: Literal["bearer"] = "bearer"
     expires_at: datetime
     user: UserRead
+    must_change_password: bool = False
 
 
 class MessageResponse(BaseModel):

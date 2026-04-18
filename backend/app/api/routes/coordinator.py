@@ -66,11 +66,17 @@ def coordinator_dashboard(user=Depends(get_current_user), db: Session = Depends(
 
 
 @router.get("/students")
-def list_students(class_id: Optional[int] = None, risk_label: Optional[str] = None,
+def list_students(class_id: Optional[int] = None, department_id: Optional[int] = None, mentor_id: Optional[int] = None, risk_label: Optional[str] = None,
                   user=Depends(get_current_user), db: Session = Depends(get_db)):
     q = db.query(Student)
     if class_id:
         q = q.filter(Student.class_id == class_id)
+    if department_id:
+        # Join Class to filter by department
+        from app.models.class_ import Class
+        q = q.join(Class, Student.class_id == Class.id).filter(Class.department_id == department_id)
+    if mentor_id:
+        q = q.filter(Student.mentor_id == mentor_id)
     students = q.all()
     result = []
     for s in students:
@@ -78,6 +84,9 @@ def list_students(class_id: Optional[int] = None, risk_label: Optional[str] = No
             RiskScore.student_id == s.id
         ).order_by(RiskScore.computed_at.desc()).first()
         label = risk.risk_label if risk else "low"
+        # Normalize critical to high for consistency
+        if label == "critical":
+            label = "high"
         if risk_label and label != risk_label:
             continue
         result.append({
@@ -88,6 +97,8 @@ def list_students(class_id: Optional[int] = None, risk_label: Optional[str] = No
             "risk_score": float(risk.risk_score) if risk else 0,
             "risk_label": label,
             "mentor_name": s.mentor.name if s.mentor else "",
+            "attendance_pct": float(risk.attendance_pct) if risk else None,
+            "marks_pct": float(risk.marks_pct) if risk else None,
         })
     result.sort(key=lambda x: x["risk_score"], reverse=True)
     return result
@@ -266,6 +277,41 @@ def mentor_activity(user=Depends(get_current_user), db: Session = Depends(get_db
     return result
 
 
+@router.get("/departments/{department_id}/students")
+def department_students(department_id: int, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Return all students for a specific department with full risk info."""
+    students = (
+        db.query(Student)
+        .join(Class, Student.class_id == Class.id)
+        .filter(Class.department_id == department_id)
+        .all()
+    )
+    result = []
+    for s in students:
+        risk = db.query(RiskScore).filter(
+            RiskScore.student_id == s.id
+        ).order_by(RiskScore.computed_at.desc()).first()
+        label = risk.risk_label if risk else "low"
+        if label == "critical":
+            label = "high"
+        result.append({
+            "id": s.id,
+            "enrollment_no": s.enrollment_no,
+            "student_name": s.user.name,
+            "email": s.user.email,
+            "class_name": s.class_.name if s.class_ else "",
+            "semester": s.class_.semester if s.class_ else 0,
+            "risk_score": float(risk.risk_score) if risk else 0,
+            "risk_label": label,
+            "attendance_pct": float(risk.attendance_pct) if risk else 0,
+            "marks_pct": float(risk.marks_pct) if risk else 0,
+            "assignment_pct": float(risk.assignment_pct) if risk else 0,
+            "mentor_name": s.mentor.name if s.mentor else "",
+        })
+    result.sort(key=lambda x: x["risk_score"], reverse=True)
+    return result
+
+
 @router.get("/alerts")
 def coordinator_alerts(user=Depends(get_current_user), db: Session = Depends(get_db)):
     alerts = db.query(Alert).order_by(Alert.triggered_at.desc()).limit(100).all()
@@ -278,7 +324,20 @@ def coordinator_alerts(user=Depends(get_current_user), db: Session = Depends(get
 
 
 @router.get("/reports/export")
-def export_report(format: str = "csv", user=Depends(get_current_user), db: Session = Depends(get_db)):
+def export_report(format: str = "csv", token: Optional[str] = None, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    # token as query param allows direct browser download links
+    if token:
+        from app.core.security import decode_token
+        from app.core.config import get_settings
+        s = get_settings()
+        try:
+            payload = decode_token(token, s)
+            u = db.get(User, int(payload.get("sub", 0)))
+            if not u or not u.is_active:
+                raise HTTPException(status_code=401, detail="Invalid token")
+            user = u
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid token")
     students = db.query(Student).all()
     rows = []
     for s in students:
