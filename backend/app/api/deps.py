@@ -3,13 +3,11 @@ from datetime import datetime, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.security import decode_token
 from app.db.session import get_db
-from app.models.revoked_token import RevokedToken
 from app.models.user import User
 
 settings = get_settings()
@@ -28,10 +26,6 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
 
     if token_type != "access" or user_id is None or jti is None or exp is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-
-    revoked_token = db.scalar(select(RevokedToken).where(RevokedToken.jti == jti))
-    if revoked_token is not None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
 
     token_expires = datetime.fromtimestamp(exp, tz=timezone.utc)
     if token_expires <= datetime.now(timezone.utc):

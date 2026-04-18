@@ -1,12 +1,12 @@
 # AcadeX Backend
 
-FastAPI backend for the TS-12 academic risk platform.
+FastAPI backend for the TS-12 academic risk platform, aligned to the final PostgreSQL schema.
 
 ## Structure
 
 - `app/core` - settings and security helpers
 - `app/db` - SQLAlchemy engine, session, and base model
-- `app/models` - PostgreSQL tables
+- `app/models` - PostgreSQL tables for `departments` and `users`
 - `app/schemas` - request and response models
 - `app/services` - auth business logic
 - `app/api/routes` - API routers
@@ -45,8 +45,8 @@ uvicorn app.main:app --reload
 ## Notes
 
 - Tables are created automatically on startup for development.
-- `login` requires an existing user row in PostgreSQL.
-- `logout` revokes the current JWT using the token blacklist table.
+- `login` requires an existing row in the final `users` table.
+- `logout` is stateless and simply validates the active JWT.
 
 API will be available at:
 - `http://127.0.0.1:8000/`

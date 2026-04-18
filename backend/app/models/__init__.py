@@ -1,2 +1,2 @@
-from app.models.revoked_token import RevokedToken
+from app.models.department import Department
 from app.models.user import User

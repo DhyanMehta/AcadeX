@@ -7,7 +7,8 @@ from app.api.router import api_router
 from app.core.config import get_settings
 from app.db.base import Base
 from app.db.session import engine
-from app.models import revoked_token, user
+from app.models.department import Department
+from app.models.user import User
 
 settings = get_settings()
 
