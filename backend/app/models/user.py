@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
@@ -19,7 +22,7 @@ class User(Base):
         Enum(*USER_ROLES, name="user_role_enum"),
         nullable=False,
     )
-    department_id: Mapped[int | None] = mapped_column(
+    department_id: Mapped[Optional[int]] = mapped_column(
         Integer,
         ForeignKey("departments.id", onupdate="CASCADE", ondelete="RESTRICT"),
         nullable=True,

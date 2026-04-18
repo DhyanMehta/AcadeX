@@ -1,5 +1,6 @@
+from __future__ import annotations
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
@@ -13,7 +14,7 @@ class UserRead(BaseModel):
     name: str
     email: EmailStr
     role: UserRole
-    department_id: int | None
+    department_id: Optional[int]
     is_active: bool
     created_at: datetime
     updated_at: datetime
