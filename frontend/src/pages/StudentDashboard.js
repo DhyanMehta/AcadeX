@@ -2,23 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, Routes, Route, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import api from '../api';
+import { DashboardSkeleton, TableSkeleton, Sk } from './Skeleton';
 import {
   FiHome, FiBarChart2, FiCalendar, FiBook, FiFileText,
   FiHeart, FiTrendingUp, FiLogOut, FiAlertTriangle, FiCheckCircle
 } from 'react-icons/fi';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, Legend, RadialBarChart, RadialBar
+  PieChart, Pie, Cell, LineChart, Line, Legend
 } from 'recharts';
 
-const RISK_COLORS = { low: '#10b981', medium: '#f59e0b', high: '#ef4444', critical: '#dc2626' };
+const RISK_COLORS = { low: '#16a34a', medium: '#d97706', high: '#dc2626', critical: '#b91c1c' };
 
 function Sidebar({ user, logout }) {
   const navigate = useNavigate();
   return (
     <div className="sidebar">
       <div className="sidebar-logo">
-        <div className="logo-icon">🎓</div>
+        <div className="logo-icon">AX</div>
         <h1>AcadeX</h1>
       </div>
       <nav className="sidebar-nav">
@@ -52,15 +53,14 @@ function DashboardHome() {
     api.get('/student/suggestions').then(r => setSuggestions(r.data)).catch(console.error);
   }, []);
 
-  if (!data) return <div className="empty-state">Loading dashboard...</div>;
+  if (!data) return <DashboardSkeleton />;
 
-  const riskColor = RISK_COLORS[data.risk_label] || '#6366f1';
-  const gaugeData = [{ name: 'Risk', value: data.risk_score, fill: riskColor }];
+  const riskColor = RISK_COLORS[data.risk_label] || '#334155';
 
   return (
     <div>
       <div className="page-header">
-        <h2>Welcome back, {data.student_name} 👋</h2>
+        <h2>Welcome back, {data.student_name}</h2>
         <p>{data.class_name} • Semester {data.semester} • {data.enrollment_no}</p>
       </div>
 
@@ -89,20 +89,67 @@ function DashboardHome() {
 
       <div className="chart-grid">
         <div className="card">
-          <div className="card-title">Risk Score Gauge</div>
-          <div className="gauge-container">
-            <ResponsiveContainer width="100%" height={200}>
-              <RadialBarChart cx="50%" cy="100%" innerRadius="60%" outerRadius="90%" startAngle={180} endAngle={0} barSize={20} data={gaugeData}>
-                <RadialBar background dataKey="value" cornerRadius={10} />
-              </RadialBarChart>
-            </ResponsiveContainer>
-            <div className="gauge-value" style={{color: riskColor, marginTop: -40}}>{data.risk_score}</div>
-            <div className="gauge-label">out of 100</div>
+          <div className="card-title">Risk Score</div>
+          {/* Professional SVG Arc Gauge */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 8px' }}>
+            <svg width="220" height="130" viewBox="0 0 220 130">
+              {/* Background track arc */}
+              <path
+                d="M 20 110 A 90 90 0 0 1 200 110"
+                fill="none"
+                stroke="#f1f5f9"
+                strokeWidth="18"
+                strokeLinecap="round"
+              />
+              {/* Colored fill arc — dasharray trick on a semicircle (length ≈ 283) */}
+              <path
+                d="M 20 110 A 90 90 0 0 1 200 110"
+                fill="none"
+                stroke={riskColor}
+                strokeWidth="18"
+                strokeLinecap="round"
+                strokeDasharray={`${(data.risk_score / 100) * 283} 283`}
+                style={{ transition: 'stroke-dasharray 0.6s ease' }}
+              />
+              {/* Center score number */}
+              <text x="110" y="98" textAnchor="middle" fontSize="38" fontWeight="800" fill={riskColor} fontFamily="Inter, sans-serif">
+                {data.risk_score}
+              </text>
+              {/* "/ 100" label */}
+              <text x="110" y="118" textAnchor="middle" fontSize="12" fill="#94a3b8" fontFamily="Inter, sans-serif">
+                out of 100
+              </text>
+            </svg>
+
+            {/* Risk level badge */}
+            <span className={`risk-chip ${data.risk_label}`} style={{ fontSize: '0.82rem', padding: '5px 18px', marginTop: 2 }}>
+              {data.risk_label.charAt(0).toUpperCase() + data.risk_label.slice(1)} Risk
+            </span>
+
+            {/* 3-step track bar */}
+            <div style={{ display: 'flex', gap: 4, marginTop: 14, width: '80%' }}>
+              {[
+                { label: 'Low', color: '#16a34a', range: '0–33' },
+                { label: 'Medium', color: '#d97706', range: '34–66' },
+                { label: 'High', color: '#dc2626', range: '67–100' },
+              ].map(seg => (
+                <div key={seg.label} style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{
+                    height: 6,
+                    borderRadius: 3,
+                    background: seg.color,
+                    opacity: data.risk_label === seg.label.toLowerCase() ? 1 : 0.2,
+                    transition: 'opacity 0.3s',
+                  }} />
+                  <div style={{ fontSize: '0.65rem', color: '#374151', marginTop: 4, fontWeight: 600 }}>{seg.label}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
         <div className="card">
-          <div className="card-title">AI Explanation</div>
+          <div className="card-title">Remarks</div>
           <p style={{color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.7}}>
             {data.ai_explanation || 'No risk analysis available yet. Ask your teacher to compute your risk score.'}
           </p>
@@ -137,7 +184,12 @@ function DashboardHome() {
 
 function AttendancePage() {
   const [data, setData] = useState([]);
-  useEffect(() => { api.get('/student/attendance').then(r => setData(r.data)).catch(console.error); }, []);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    api.get('/student/attendance').then(r => setData(r.data)).catch(console.error).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <TableSkeleton rows={5} cols={6} />;
 
   const chartData = data.map(d => ({ name: d.subject_name, Present: d.present, Absent: d.absent, Late: d.late, percentage: d.percentage }));
 
@@ -148,14 +200,14 @@ function AttendancePage() {
         <div className="card-title">Attendance by Subject</div>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
-            <YAxis stroke="#64748b" fontSize={12} />
-            <Tooltip contentStyle={{background: '#1a1f36', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8}} />
-            <Legend />
-            <Bar dataKey="Present" fill="#10b981" radius={[4,4,0,0]} />
-            <Bar dataKey="Absent" fill="#ef4444" radius={[4,4,0,0]} />
-            <Bar dataKey="Late" fill="#f59e0b" radius={[4,4,0,0]} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', color: '#0f172a', fontSize: '0.84rem' }} cursor={{ fill: 'rgba(15,23,42,0.04)' }} />
+            <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: '0.82rem' }} />
+            <Bar dataKey="Present" fill="#16a34a" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Absent" fill="#dc2626" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Late" fill="#d97706" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -178,7 +230,12 @@ function AttendancePage() {
 
 function MarksPage() {
   const [data, setData] = useState([]);
-  useEffect(() => { api.get('/student/marks').then(r => setData(r.data)).catch(console.error); }, []);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    api.get('/student/marks').then(r => setData(r.data)).catch(console.error).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <TableSkeleton rows={5} cols={5} />;
 
   return (
     <div>
@@ -206,7 +263,12 @@ function MarksPage() {
 
 function AssignmentsPage() {
   const [data, setData] = useState([]);
-  useEffect(() => { api.get('/student/assignments').then(r => setData(r.data)).catch(console.error); }, []);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    api.get('/student/assignments').then(r => setData(r.data)).catch(console.error).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <TableSkeleton rows={5} cols={5} />;
 
   return (
     <div>
@@ -231,7 +293,12 @@ function AssignmentsPage() {
 
 function InterventionsPage() {
   const [data, setData] = useState([]);
-  useEffect(() => { api.get('/student/interventions').then(r => setData(r.data)).catch(console.error); }, []);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    api.get('/student/interventions').then(r => setData(r.data)).catch(console.error).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <TableSkeleton rows={4} cols={5} />;
 
   return (
     <div>
@@ -261,7 +328,15 @@ function ProgressPage() {
   const [data, setData] = useState(null);
   useEffect(() => { api.get('/student/progress').then(r => setData(r.data)).catch(console.error); }, []);
 
-  if (!data) return <div className="empty-state">Loading...</div>;
+  if (!data) return (
+    <div>
+      <div className="page-header">
+        <Sk.Title width="30%" style={{ marginBottom: 6 }} />
+        <Sk.Text width="20%" style={{ marginBottom: 0 }} />
+      </div>
+      <Sk.ChartBox height={300} />
+    </div>
+  );
 
   const chartData = data.risk_history.map((r, i) => ({
     date: new Date(r.computed_at).toLocaleDateString(),
@@ -278,14 +353,14 @@ function ProgressPage() {
         {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="date" stroke="#64748b" fontSize={12} />
-              <YAxis stroke="#64748b" fontSize={12} />
-              <Tooltip contentStyle={{background: '#1a1f36', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8}} />
-              <Legend />
-              <Line type="monotone" dataKey="Risk Score" stroke="#ef4444" strokeWidth={2} dot={{r:4}} />
-              <Line type="monotone" dataKey="Attendance" stroke="#10b981" strokeWidth={2} dot={{r:4}} />
-              <Line type="monotone" dataKey="Marks" stroke="#6366f1" strokeWidth={2} dot={{r:4}} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', color: '#0f172a', fontSize: '0.84rem' }} />
+              <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: '0.82rem' }} />
+              <Line type="monotone" dataKey="Risk Score" stroke="#dc2626" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="Attendance" stroke="#16a34a" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="Marks" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         ) : <div className="empty-state">No risk history available</div>}
