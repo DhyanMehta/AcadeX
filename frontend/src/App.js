@@ -5,22 +5,30 @@ import Login from './pages/Login';
 import StudentDashboard from './pages/StudentDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import CoordinatorDashboard from './pages/CoordinatorDashboard';
+import ChangePasswordModal from './pages/ChangePasswordModal';
+import ResetPassword from './pages/ResetPassword';
+import GuardianDashboard from './pages/GuardianDashboard';
 
 function ProtectedRoute({ children, roles }) {
-  const { user, loading } = useAuth();
+  const { user, loading, mustChangePassword } = useAuth();
   if (loading) return <div className="empty-state">Loading...</div>;
   if (!user) return <Navigate to="/login" />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/login" />;
-  return children;
+  return (
+    <>
+      {mustChangePassword && <ChangePasswordModal />}
+      {children}
+    </>
+  );
 }
 
 function RoleRedirect() {
   const { user, loading } = useAuth();
   if (loading) return <div className="empty-state">Loading...</div>;
   if (!user) return <Navigate to="/login" />;
-  if (user.role === 'student') return <Navigate to="/student" />;
-  if (user.role === 'faculty') return <Navigate to="/teacher" />;
-  if (user.role === 'coordinator') return <Navigate to="/coordinator" />;
+  if (user.role === 'student')      return <Navigate to="/student" />;
+  if (user.role === 'faculty')      return <Navigate to="/teacher" />;
+  if (user.role === 'coordinator')  return <Navigate to="/coordinator" />;
   return <Navigate to="/login" />;
 }
 
@@ -30,21 +38,19 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/" element={<RoleRedirect />} />
           <Route path="/student/*" element={
-            <ProtectedRoute roles={['student']}>
-              <StudentDashboard />
-            </ProtectedRoute>
+            <ProtectedRoute roles={['student']}><StudentDashboard /></ProtectedRoute>
           } />
           <Route path="/teacher/*" element={
-            <ProtectedRoute roles={['faculty']}>
-              <TeacherDashboard />
-            </ProtectedRoute>
+            <ProtectedRoute roles={['faculty']}><TeacherDashboard /></ProtectedRoute>
+          } />
+          <Route path="/guardian" element={
+            <ProtectedRoute roles={['student']}><GuardianDashboard /></ProtectedRoute>
           } />
           <Route path="/coordinator/*" element={
-            <ProtectedRoute roles={['coordinator']}>
-              <CoordinatorDashboard />
-            </ProtectedRoute>
+            <ProtectedRoute roles={['coordinator']}><CoordinatorDashboard /></ProtectedRoute>
           } />
         </Routes>
       </BrowserRouter>
