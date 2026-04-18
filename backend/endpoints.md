@@ -1,4 +1,6 @@
-# API Endpoints Documentation
+# API Endpoints Documentation (Final — 63 Endpoints)
+
+---
 
 ## AUTH (3)
 
@@ -7,6 +9,16 @@
 | POST   | /auth/login  |
 | POST   | /auth/logout |
 | GET    | /auth/me     |
+
+---
+
+## SETUP (3)
+
+| Method | Endpoint                           |
+| ------ | ---------------------------------- |
+| GET    | /setup/departments                 |
+| GET    | /setup/classes                     |
+| GET    | /setup/classes/{class_id}/subjects |
 
 ---
 
@@ -25,7 +37,7 @@
 
 ---
 
-## TEACHER — SUBJECT SIDE (11)
+## TEACHER — SUBJECT SIDE (12)
 
 | Method | Endpoint                                              |
 | ------ | ----------------------------------------------------- |
@@ -37,9 +49,9 @@
 | GET    | /teacher/subjects/{subject_id}/marks                  |
 | POST   | /teacher/subjects/{subject_id}/marks                  |
 | PUT    | /teacher/subjects/{subject_id}/marks/{assessment_id}  |
+| GET    | /teacher/subjects/{subject_id}/assignments            |
 | POST   | /teacher/subjects/{subject_id}/assignments            |
 | PUT    | /teacher/subjects/{subject_id}/assignments/{id}/marks |
-| GET    | /teacher/subjects/{subject_id}/assignments            |
 | GET    | /teacher/subjects/{subject_id}/risk-overview          |
 
 ---
@@ -88,14 +100,61 @@
 
 ---
 
+## ML (4)
+
+| Method | Endpoint                 |
+| ------ | ------------------------ |
+| POST   | /ml/predict/{student_id} |
+| POST   | /ml/trend/{student_id}   |
+| POST   | /ml/predict-all          |
+| GET    | /ml/shap/{student_id}    |
+
+---
+
+## LMS ACTIVITY (3)
+
+| Method | Endpoint                   |
+| ------ | -------------------------- |
+| POST   | /lms/activity/{student_id} |
+| GET    | /lms/activity/{student_id} |
+| POST   | /lms/activity/bulk         |
+
+---
+
+## ALERTS (4)
+
+| Method | Endpoint                       |
+| ------ | ------------------------------ |
+| GET    | /alerts/active                 |
+| PUT    | /alerts/{alert_id}/acknowledge |
+| PUT    | /alerts/{alert_id}/read        |
+| GET    | /alerts/history/{student_id}   |
+
+---
+
+## INTERVENTIONS (3)
+
+| Method | Endpoint                                 |
+| ------ | ---------------------------------------- |
+| POST   | /interventions/{intervention_id}/outcome |
+| GET    | /interventions/{intervention_id}/outcome |
+| GET    | /interventions/student/{student_id}      |
+
+---
+
 ## FINAL COUNT
 
 | Section           | Count  |
 | ----------------- | ------ |
 | Auth              | 3      |
+| Setup             | 3      |
 | Student           | 8      |
-| Teacher — Subject | 11     |
+| Teacher — Subject | 12     |
 | Teacher — Mentor  | 9      |
 | Coordinator       | 11     |
 | Risk Engine       | 3      |
-| **Total**         | **45** |
+| ML                | 4      |
+| LMS Activity      | 3      |
+| Alerts            | 4      |
+| Interventions     | 3      |
+| **Total**         | **63** |
