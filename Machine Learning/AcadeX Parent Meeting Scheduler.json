@@ -1,0 +1,152 @@
+{
+  "name": "AcadeX Parent Meeting Scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1tO-9WbN8sC1X67ZslSlKMW4N_Ou_moxd8j-OvIIIPaY",
+          "mode": "list",
+          "cachedResultName": "Parent Data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1tO-9WbN8sC1X67ZslSlKMW4N_Ou_moxd8j-OvIIIPaY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1tO-9WbN8sC1X67ZslSlKMW4N_Ou_moxd8j-OvIIIPaY/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "6cf913c1-03cd-4f33-be45-c7b6e4c96824",
+      "name": "Get All Rows1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1568,
+        704
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "vqtFHYKjpcdtHexW",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the student email from the webhook payload\nconst studentEmail = $('Webhook').first().json.body.student_email;\n\n// Get all rows from Google Sheets\nconst rows = $input.all();\n\n// Find the matching row\nconst match = rows.find(row => row.json['Student-Email'] === studentEmail);\n\nif (!match) {\n  throw new Error('No parent email found for student: ' + studentEmail);\n}\n\n// Extract parent email\nconst parentEmail = match.json['Parent-Email'];\n\n// Merge webhook data + parent email into one object\nconst webhookData = $('Webhook').first().json.body;\n\nreturn [{\n  json: {\n    student_name:    webhookData.student_name,\n    student_email:   webhookData.student_email,\n    enrollment_no:   webhookData.enrollment_no,\n    class_name:      webhookData.class_name,\n    risk_label:      webhookData.risk_label,\n    risk_score:      webhookData.risk_score,\n    meeting_time:    webhookData.meeting_time,\n    teacher_remarks: webhookData.teacher_remarks,\n    parent_email:    parentEmail\n  }\n}];"
+      },
+      "id": "88cf6fcb-c694-42f4-8b82-f12d7f7f3c84",
+      "name": "Match & Extract Parent Email1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eacc44d3-a0a6-4e8a-a230-e18ae861eeaa",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        1312,
+        704
+      ],
+      "id": "c402f193-08f0-470a-b339-1c4d53d5c2dd",
+      "name": "Webhook",
+      "webhookId": "eacc44d3-a0a6-4e8a-a230-e18ae861eeaa"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "dinatrivedi1481@gmail.com",
+          "mode": "list",
+          "cachedResultName": "dinatrivedi1481@gmail.com"
+        },
+        "start": "={{ DateTime.fromISO($json.meeting_time.length === 16 ? $json.meeting_time + ':00' : $json.meeting_time, { zone: 'Asia/Kolkata' }).toISO() }}",
+        "end": "={{ DateTime.fromISO($json.meeting_time.length === 16 ? $json.meeting_time + ':00' : $json.meeting_time, { zone: 'Asia/Kolkata' }).plus({ hours: 1 }).toISO() }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ $json.parent_email }}"
+          ],
+          "description": "=Dear Parent/Guardian,  A parent-teacher meeting has been scheduled for your child through the AcadeX Academic Risk Detection System.  Student Details:   Name         : {{ $json.student_name }}   Enrollment   : {{ $json.enrollment_no }}   Class        : {{ $json.class_name }}   Risk Level   : {{ $json.risk_label }} (Score: {{ $json.risk_score }}/100)  Mentor Remarks:   {{ $json.teacher_remarks }}  Please join the meeting at the scheduled time. If you have any questions, contact your child's mentor directly.  — AcadeX Academic Support Team",
+          "sendUpdates": "all",
+          "summary": "=Parent Meeting — {{ $json.student_name }} ({{ $json.class_name }})"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        2000,
+        704
+      ],
+      "id": "a078de5c-618a-451f-b641-1d7dc734a914",
+      "name": "Create an event1",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "6DaSESdWjfxumu43",
+          "name": "Google Calendar OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get All Rows1": {
+      "main": [
+        [
+          {
+            "node": "Match & Extract Parent Email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match & Extract Parent Email1": {
+      "main": [
+        [
+          {
+            "node": "Create an event1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get All Rows1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "624b30c5-549b-4f47-b1bb-02273d4ebea2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9facf644c2f39372613d2b7e780ab1bb2fdd3f75e9878313120807d02d03d85d"
+  },
+  "id": "J7417G7F90r7YbyA",
+  "tags": []
+}
